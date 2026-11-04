@@ -152,7 +152,7 @@ td .sm{padding:6px 10px;font-size:.85rem}
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>N°</th><th>Lote/Parte</th><th>Fecha</th><th>Hora</th><th></th></tr></thead>
+        <thead><tr><th>N°</th><th>Lote/Parte</th><th></th></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
     </div>
@@ -471,20 +471,18 @@ const fmtTime = ts => new Date(ts).toLocaleTimeString('es-AR',{hour:'2-digit',mi
 function render(){
   $('count').textContent = items.length;
   const tb = $('tbody');
-  if(!items.length){ tb.innerHTML = '<tr><td colspan="5" class="empty">Todavía no hay lotes. Leé una tarjeta para empezar.</td></tr>'; return; }
+  if(!items.length){ tb.innerHTML = '<tr><td colspan="3" class="empty">Todavía no hay lotes. Leé una tarjeta para empezar.</td></tr>'; return; }
   let html = '';
   for(let i=items.length-1;i>=0;i--){   // el último leído arriba
     const it = items[i], latest = i===items.length-1 ? ' class="latest"' : '';
     if(i === editing){
       html += `<tr${latest}><td class="n">${i+1}</td>
         <td><input class="edit-input" data-i="${i}" value="${it.code}" autocomplete="off" spellcheck="false"></td>
-        <td>${fmtDate(it.ts)}</td><td>${fmtTime(it.ts)}</td>
         <td class="acts"><button class="primary sm" data-act="save" data-i="${i}">Guardar</button>
         <button class="ghost sm" data-act="cancel" data-i="${i}">Cancelar</button></td></tr>`;
     }else{
       html += `<tr${latest}><td class="n">${i+1}</td>
         <td class="code">${it.code}${it.edited?'<span class="tag">editado</span>':''}</td>
-        <td>${fmtDate(it.ts)}</td><td>${fmtTime(it.ts)}</td>
         <td class="acts"><button class="ghost sm" data-act="edit" data-i="${i}">Editar</button>
         <button class="ghost danger sm" data-act="del" data-i="${i}">Quitar</button></td></tr>`;
     }
