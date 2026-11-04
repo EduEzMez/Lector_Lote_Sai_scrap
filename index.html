@@ -9,7 +9,7 @@
 :root{
   --bg:#eef0ec; --surface:#ffffff; --surface-2:#e3e6e1; --text:#1f2428; --muted:#5b6770;
   --line:#cfd4cd; --signal:#e39b00; --signal-ink:#1c1300; --ok:#2e7d4f; --warn:#b4560f; --danger:#b42318;
-  --new:#fff4d6;
+  --new:#fff6dc;
   --mono: ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;
   color-scheme: light;
 }
@@ -17,63 +17,49 @@
   :root{
     --bg:#13171a; --surface:#1b2024; --surface-2:#242b30; --text:#e7ebee; --muted:#95a1aa;
     --line:#2f383f; --signal:#f2b233; --signal-ink:#1c1300; --ok:#48b878; --warn:#f08c3a; --danger:#f2665a;
-    --new:#3a2f12;
-    color-scheme: dark;
+    --new:#2c2716; color-scheme: dark;
   }
 }
 *{box-sizing:border-box}
 html,body{margin:0}
-body{
-  background:var(--bg); color:var(--text);
-  font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);
-}
-.wrap{max-width:820px;margin:0 auto;padding:16px}
+body{background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+.wrap{max-width:900px;margin:0 auto;padding:16px}
 header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:4px 0 14px}
 h1{font-size:1.35rem;margin:0;letter-spacing:-.01em}
 .count{font-family:var(--mono);color:var(--muted);font-size:.95rem}
 .count b{color:var(--text)}
 
-/* Visor horizontal */
-.viewer{position:relative;background:#000;border-radius:16px;overflow:hidden;aspect-ratio:16/9;max-height:62vh;width:100%;touch-action:manipulation;cursor:crosshair}
-.viewer video{width:100%;height:100%;object-fit:cover;display:block;transform-origin:center center}
-.viewer img{width:100%;height:100%;object-fit:contain;display:block}
-.guide{position:absolute;left:6%;width:88%;top:32%;height:36%;pointer-events:none}
-.guide::before,.guide::after,.guide span::before,.guide span::after{
-  content:"";position:absolute;width:28px;height:28px;border:3px solid var(--signal)
-}
+/* Visor horizontal 16:9 */
+.viewer{position:relative;background:#000;border-radius:16px;overflow:hidden;aspect-ratio:16/9;touch-action:manipulation}
+.viewer video,.viewer img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.viewer img{object-fit:contain}
+@media (orientation:landscape) and (max-height:600px){ .viewer{max-height:72vh;aspect-ratio:auto;height:72vh} }
+.guide{position:absolute;left:6%;width:88%;top:36%;height:28%;pointer-events:none}
+.guide::before,.guide::after,.guide span::before,.guide span::after{content:"";position:absolute;width:28px;height:28px;border:3px solid var(--signal)}
 .guide::before{left:0;top:0;border-right:0;border-bottom:0}
 .guide::after{right:0;top:0;border-left:0;border-bottom:0}
 .guide span::before{left:0;bottom:0;border-right:0;border-top:0}
 .guide span::after{right:0;bottom:0;border-left:0;border-top:0}
 .guide.hit::before,.guide.hit::after,.guide.hit span::before,.guide.hit span::after{border-color:var(--ok)}
-.scanline{position:absolute;left:5%;right:5%;top:50%;height:2px;background:var(--signal);opacity:.7;pointer-events:none}
-.viewer.busy .scanline{animation:pulse 1s ease-in-out infinite}
+.scanline{position:absolute;left:5%;right:5%;top:50%;height:2px;background:var(--signal);opacity:.7}
+.viewer.live .scanline{animation:pulse 1s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.15}}
-.focus-ring{position:absolute;width:64px;height:64px;margin:-32px 0 0 -32px;border:2px solid #fff;border-radius:50%;opacity:0;pointer-events:none}
-.focus-ring.show{animation:ring .7s ease-out}
-@keyframes ring{0%{opacity:1;transform:scale(1.4)}100%{opacity:0;transform:scale(.8)}}
-@media (prefers-reduced-motion:reduce){.viewer.busy .scanline,.focus-ring.show{animation:none}}
+@media (prefers-reduced-motion:reduce){.viewer.live .scanline{animation:none}}
 .placeholder{position:absolute;inset:0;display:grid;place-items:center;color:#c9d1d6;text-align:center;padding:24px;font-size:.95rem}
+.focusdot{position:absolute;width:56px;height:56px;margin:-28px 0 0 -28px;border:2px solid #fff;border-radius:50%;opacity:0;pointer-events:none;transition:opacity .4s}
+.focusdot.show{opacity:.9}
 .hint{color:var(--muted);font-size:.88rem;margin:8px 2px 0}
 .status{font-family:var(--mono);font-size:.85rem;color:var(--muted);margin:6px 2px 0;min-height:1.3em}
 
-/* Controles de zoom / enfoque */
-.controls{display:grid;grid-template-columns:auto 1fr auto;gap:8px 12px;align-items:center;margin-top:12px;
-  background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
-.controls[hidden]{display:none}
-.controls label{font-size:.9rem;color:var(--muted)}
-.controls output{font-family:var(--mono);font-size:.85rem;min-width:4.5em;text-align:right}
-.controls input[type=range]{width:100%;accent-color:var(--signal)}
-.controls .ctl-row{display:contents}
-.controls .ctl-row[hidden]{display:none}
+.zoom{display:flex;align-items:center;gap:10px;margin-top:10px}
+.zoom[hidden]{display:none}
+.zoom input{flex:1;accent-color:var(--signal)}
+.zoom output{font-family:var(--mono);min-width:3.5em;text-align:right}
 
-/* Botones */
 .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-button,.btn{
-  font:inherit;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--text);
-  padding:11px 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
-}
+button,.btn{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--text);
+  padding:11px 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 button:focus-visible,.btn:focus-visible,input:focus-visible{outline:3px solid var(--signal);outline-offset:2px}
 button.primary{background:var(--signal);border-color:var(--signal);color:var(--signal-ink)}
 button.on{background:var(--text);color:var(--bg);border-color:var(--text)}
@@ -83,48 +69,40 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .btn input{display:none}
 
 /* Confirmación */
-dialog{border:0;padding:0;border-radius:18px;background:var(--surface);color:var(--text);width:min(460px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.35)}
-dialog::backdrop{background:rgba(10,14,17,.6)}
-.dlg{padding:20px;border-top:6px solid var(--signal)}
-.dlg h2{margin:0 0 4px;font-size:1.15rem}
-.dlg p{margin:0 0 12px;color:var(--muted);font-size:.92rem}
-.code-input{
-  width:100%;font-family:var(--mono);font-size:2.4rem;font-weight:700;letter-spacing:.06em;text-align:center;
-  padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);
-  text-transform:uppercase;
-}
-.dlg .row{justify-content:stretch}
-.dlg .row button{flex:1;justify-content:center;padding:14px}
-.raw{font-family:var(--mono);font-size:.75rem;color:var(--muted);margin-top:12px;word-break:break-all}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center;padding:16px;z-index:20}
+.modal[hidden]{display:none}
+.card{width:min(520px,100%);background:var(--surface);border:2px solid var(--signal);border-radius:18px;padding:18px}
+.card h2{margin:0 0 4px;font-size:1.15rem}
+.card p{margin:0 0 10px;color:var(--muted);font-size:.92rem}
+.code-input{width:100%;font-family:var(--mono);font-size:2.4rem;font-weight:700;letter-spacing:.06em;text-align:center;
+  padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);text-transform:uppercase}
+.raw{font-family:var(--mono);font-size:.78rem;color:var(--muted);margin-top:10px;word-break:break-all}
 .dup{color:var(--warn);font-weight:600;font-size:.9rem;margin-top:8px}
 .dup[hidden]{display:none}
+.card .row button{flex:1;justify-content:center;padding:14px}
 
-/* Manual */
 .manual{display:flex;gap:8px;margin-top:16px}
-.manual input{flex:1;min-width:0;font:inherit;font-family:var(--mono);padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);text-transform:uppercase}
+.manual input,.edit-input{font:inherit;font-family:var(--mono);padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);text-transform:uppercase}
+.manual input{flex:1;min-width:0}
+.edit-input{width:9.5em;font-weight:700}
 
-/* Listado */
 section.list{margin-top:26px}
 .list-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-h2.list-title{font-size:1.1rem;margin:0}
-.list-sub{color:var(--muted);font-size:.85rem;margin:2px 0 0}
+.list-head h2{font-size:1.1rem;margin:0}
 .table-wrap{overflow-x:auto;margin-top:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 table{width:100%;border-collapse:collapse;font-size:.95rem}
-th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:middle}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
 th{font-weight:600;color:var(--muted);font-size:.85rem;background:var(--surface-2)}
 tr:last-child td{border-bottom:0}
 tr.latest td{background:var(--new)}
-tr.flash td{animation:flash 1.6s ease-out}
-@keyframes flash{0%{background:var(--signal)}100%{background:var(--new)}}
 td.code{font-family:var(--mono);font-weight:700;font-size:1.05rem}
-td.code small{font-family:system-ui,sans-serif;font-weight:500;color:var(--muted);font-size:.75rem;margin-left:6px}
 td.n{color:var(--muted);font-family:var(--mono)}
-td.actions{text-align:right}
-td.actions button{padding:6px 10px;font-size:.85rem}
-td .edit-input{font-family:var(--mono);font-weight:700;font-size:1rem;width:9.5em;padding:6px 8px;border-radius:8px;border:2px solid var(--signal);background:var(--surface-2);color:var(--text);text-transform:uppercase}
+td.acts{display:flex;gap:6px}
+td .sm{padding:6px 10px;font-size:.85rem}
+.tag{font-size:.75rem;color:var(--muted);font-weight:400;margin-left:6px;font-family:system-ui,sans-serif}
 .empty{padding:22px;text-align:center;color:var(--muted)}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
-  background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;z-index:10}
+  background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;z-index:30}
 .toast.show{opacity:1}
 </style>
 </head>
@@ -140,29 +118,21 @@ td .edit-input{font-family:var(--mono);font-weight:700;font-size:1rem;width:9.5e
     <img id="photo" alt="Foto subida" hidden>
     <div class="placeholder" id="placeholder">Tocá “Iniciar cámara” o subí una foto de la tarjeta.</div>
     <div class="guide" id="guide"><span></span></div>
-    <div class="scanline" id="scanline"></div>
-    <div class="focus-ring" id="focusRing"></div>
+    <div class="scanline"></div>
+    <div class="focusdot" id="focusdot"></div>
   </div>
-  <p class="hint">Alineá la línea “LOTE/PARTE N°” dentro del marco. Para leer de cerca, alejá un poco el celular y usá el zoom: enfoca mejor. Tocá la imagen para volver a enfocar.</p>
+  <p class="hint">Alineá “LOTE/PARTE N°” dentro del marco. Si se ve borroso, alejá la tarjeta y subí el zoom. Tocá la imagen para enfocar.</p>
   <div class="status" id="status">Cargando motor de lectura…</div>
 
-  <div class="controls" id="controls" hidden>
-    <div class="ctl-row" id="zoomRow">
-      <label for="zoom">Zoom</label>
-      <input type="range" id="zoom" min="1" max="4" step="0.1" value="1">
-      <output id="zoomOut">1.0×</output>
-    </div>
-    <div class="ctl-row" id="focusRow" hidden>
-      <label for="focus">Enfoque</label>
-      <input type="range" id="focus" min="0" max="1" step="0.01" value="0">
-      <output id="focusOut">Auto</output>
-    </div>
+  <div class="zoom" id="zoomBox" hidden>
+    <span>Zoom</span>
+    <input type="range" id="zoom" min="1" max="4" step="0.1" value="1">
+    <output id="zoomVal">1.0×</output>
   </div>
 
   <div class="row">
     <button class="primary" id="btnCam">Iniciar cámara</button>
-    <button id="btnAuto" disabled>Lectura automática</button>
-    <button id="btnRead" disabled>Leer ahora</button>
+    <button id="btnPause" disabled>Pausar</button>
     <button id="btnTorch" hidden>Linterna</button>
     <label class="btn">Subir foto<input type="file" id="file" accept="image/*" capture="environment"></label>
   </div>
@@ -174,10 +144,7 @@ td .edit-input{font-family:var(--mono);font-weight:700;font-size:1rem;width:9.5e
 
   <section class="list">
     <div class="list-head">
-      <div>
-        <h2 class="list-title">Listado</h2>
-        <p class="list-sub">El último agregado aparece primero.</p>
-      </div>
+      <h2>Listado (último primero)</h2>
       <div class="row" style="margin:0">
         <button class="primary" id="btnCsv">Exportar CSV</button>
         <button class="ghost danger" id="btnClear">Vaciar</button>
@@ -185,27 +152,26 @@ td .edit-input{font-family:var(--mono);font-weight:700;font-size:1rem;width:9.5e
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>#</th><th>Lote/Parte</th><th>Fecha</th><th>Hora</th><th></th></tr></thead>
+        <thead><tr><th>N°</th><th>Lote/Parte</th><th>Fecha</th><th>Hora</th><th></th></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
     </div>
   </section>
 </div>
 
-<dialog id="confirmDlg">
-  <form method="dialog" class="dlg" onsubmit="return false">
-    <h2>¿Este es el código?</h2>
-    <p>Revisalo con la tarjeta. Si hay un error, corregilo antes de aceptar.</p>
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="card">
+    <h2 id="mTitle">¿Es este el código?</h2>
+    <p>Revisalo contra la tarjeta. Podés corregirlo antes de aceptar.</p>
     <input class="code-input" id="code" autocomplete="off" spellcheck="false">
     <div class="dup" id="dup" hidden></div>
     <div class="row">
-      <button class="ghost" id="btnReject" type="button">No, leer otra vez</button>
-      <button class="primary" id="btnAccept" type="button">Sí, agregar</button>
+      <button class="primary" id="btnAccept">Sí, agregar</button>
+      <button id="btnRetry">No, leer de nuevo</button>
     </div>
     <div class="raw" id="raw"></div>
-  </form>
-</dialog>
-
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
@@ -213,97 +179,91 @@ td .edit-input{font-family:var(--mono);font-weight:700;font-size:1rem;width:9.5e
 /* ===================== CONFIG ===================== */
 const CONFIG = {
   codeRegex: /^[A-Z]?\d{4,8}$/,   // letra opcional + 4 a 8 dígitos
-  autoIntervalMs: 900,
-  confirmReads: 2,
+  tickMs: 120,                    // cada cuánto se toma un cuadro
+  cropWidth: 900,                 // ancho del recorte que va al OCR (menos = más rápido)
+  instantConfidence: 72,          // con esta confianza o más, pide confirmar sin segunda lectura
+  confirmReads: 2,                // si no, lecturas iguales para confirmar
   storageKey: 'lotes_v1',
-  csvSeparator: ';',
-  guide: { x:0.06, y:0.32, w:0.88, h:0.36 }, // debe coincidir con .guide en el CSS
-  maxDigitalZoom: 4
+  csvSeparator: ';'
 };
+const WORKERS = Math.min(2, Math.max(1, (navigator.hardwareConcurrency || 2) - 1));
 
 /* ===================== Estado ===================== */
 const $ = id => document.getElementById(id);
-let worker = null, stream = null, track = null, caps = {};
-let autoOn = false, busy = false, autoTimer = null;
-let lastCandidate = null, candidateHits = 0, lastAccepted = null;
-let torchOn = false, hwZoom = false, digitalZoom = 1;
+let scheduler = null, ready = false;
+let stream = null, track = null, caps = {};
+let paused = false, tickTimer = null, inFlight = 0;
+let lastCandidate = null, candidateHits = 0;
+let lastAccepted = null, emptyFrames = 0;
+let torchOn = false, editing = -1;
 let items = loadItems();
-let editingTs = null, flashTs = null;
 
 /* ===================== OCR ===================== */
 async function initOCR(){
   try{
-    worker = await Tesseract.createWorker('eng', 1);
-    await worker.setParameters({
-      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/:°º.- ',
-      preserve_interword_spaces: '1'
-    });
-    setStatus('Listo para leer.');
+    scheduler = Tesseract.createScheduler();
+    await Promise.all(Array.from({length:WORKERS}, async ()=>{
+      const w = await Tesseract.createWorker('eng', 1);
+      await w.setParameters({
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/:°º.- ',
+        tessedit_pageseg_mode: '7'   // una sola línea: lo más rápido
+      });
+      scheduler.addWorker(w);
+    }));
+    ready = true;
+    setStatus(stream ? 'Buscando LOTE/PARTE N°…' : 'Listo para leer.');
   }catch(e){
     console.error(e);
     setStatus('No se pudo cargar el motor de lectura. Revisá la conexión y recargá.');
   }
 }
 
-// Escala, gris, suavizado (une puntos de matriz) y umbral adaptativo (tolera sombras)
+// Gris + suavizado (une puntos de matriz) + umbral adaptativo. Una sola imagen integral: O(n).
 function preprocess(src, sx, sy, sw, sh, targetW){
-  const scale = Math.min(3, Math.max(0.3, targetW / sw));
+  const scale = Math.min(2.5, targetW / sw);
   const w = Math.max(1, Math.round(sw*scale)), h = Math.max(1, Math.round(sh*scale));
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   const ctx = c.getContext('2d', {willReadFrequently:true});
-  ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(src, sx, sy, sw, sh, 0, 0, w, h);
   const img = ctx.getImageData(0,0,w,h), d = img.data;
-  const g = new Float32Array(w*h);
-  for(let i=0,j=0;i<d.length;i+=4,j++) g[j] = d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114;
-
-  const b = new Float32Array(w*h);
+  const W1 = w+1, integ = new Float64Array(W1*(h+1));
   for(let y=0;y<h;y++){
+    let row=0;
     for(let x=0;x<w;x++){
-      let s=0,n=0;
-      for(let dy=-1;dy<=1;dy++){ const yy=y+dy; if(yy<0||yy>=h) continue;
-        for(let dx=-1;dx<=1;dx++){ const xx=x+dx; if(xx<0||xx>=w) continue; s+=g[yy*w+xx]; n++; } }
-      b[y*w+x]=s/n;
+      const k=(y*w+x)*4;
+      row += d[k]*0.299 + d[k+1]*0.587 + d[k+2]*0.114;
+      integ[(y+1)*W1+x+1] = integ[y*W1+x+1] + row;
     }
   }
-
-  const integ = new Float64Array((w+1)*(h+1));
-  for(let y=1;y<=h;y++){
-    let rowSum=0;
-    for(let x=1;x<=w;x++){ rowSum+=b[(y-1)*w+(x-1)]; integ[y*(w+1)+x]=integ[(y-1)*(w+1)+x]+rowSum; }
-  }
+  const box = (x1,y1,x2,y2) => integ[(y2+1)*W1+x2+1]-integ[y1*W1+x2+1]-integ[(y2+1)*W1+x1]+integ[y1*W1+x1];
   const S = Math.max(15, Math.floor(w/12)), half = S>>1, T = 0.15;
   let dark = 0;
   for(let y=0;y<h;y++){
-    const y1=Math.max(0,y-half), y2=Math.min(h-1,y+half);
+    const by1=Math.max(0,y-1), by2=Math.min(h-1,y+1), y1=Math.max(0,y-half), y2=Math.min(h-1,y+half);
     for(let x=0;x<w;x++){
+      const bx1=Math.max(0,x-1), bx2=Math.min(w-1,x+1);
+      const blur = box(bx1,by1,bx2,by2)/((bx2-bx1+1)*(by2-by1+1));
       const x1=Math.max(0,x-half), x2=Math.min(w-1,x+half);
-      const count=(x2-x1+1)*(y2-y1+1);
-      const sum=integ[(y2+1)*(w+1)+(x2+1)]-integ[y1*(w+1)+(x2+1)]-integ[(y2+1)*(w+1)+x1]+integ[y1*(w+1)+x1];
-      const v = (b[y*w+x]*count <= sum*(1-T)) ? 0 : 255;
+      const mean = box(x1,y1,x2,y2)/((x2-x1+1)*(y2-y1+1));
+      const v = blur <= mean*(1-T) ? 0 : 255;
       if(!v) dark++;
       const k=(y*w+x)*4; d[k]=d[k+1]=d[k+2]=v; d[k+3]=255;
     }
   }
-  if(dark > w*h*0.5){ for(let k=0;k<d.length;k+=4){ d[k]=d[k+1]=d[k+2]=255-d[k]; } }
+  const ratio = dark/(w*h);
+  if(ratio > 0.5){ for(let k=0;k<d.length;k+=4){ d[k]=d[k+1]=d[k+2]=255-d[k]; } }
   ctx.putImageData(img,0,0);
-  return c;
+  return { canvas:c, ink: ratio > 0.5 ? 1-ratio : ratio };
 }
 
 function normalizeToken(tok){
   const map = {O:'0',Q:'0',D:'0',U:'0',I:'1',L:'1',J:'1',Z:'2',S:'5',B:'8',G:'6',T:'7',A:'4'};
-  if(!tok) return null;
-  const first = tok[0], rest = tok.slice(1);
   const fix = s => s.replace(/[A-Z]/g, ch => map[ch] ?? ch);
-  if(/[A-Z]/.test(first)){
-    const c1 = first + fix(rest);
-    if(CONFIG.codeRegex.test(c1)) return c1;
-  }
+  if(!tok) return null;
+  if(/[A-Z]/.test(tok[0])){ const c1 = tok[0] + fix(tok.slice(1)); if(CONFIG.codeRegex.test(c1)) return c1; }
   const c2 = fix(tok);
-  if(CONFIG.codeRegex.test(c2)) return c2;
-  return null;
+  return CONFIG.codeRegex.test(c2) ? c2 : null;
 }
-
 function extractCode(text){
   const up = (text||'').toUpperCase().replace(/[|]/g,'1');
   for(const line of up.split(/\n+/)){
@@ -311,10 +271,10 @@ function extractCode(text){
     if(m){
       let rest = m[1].replace(/^[\s\/]*(?:PARTE|ARTE)?\s*/,'');
       rest = rest.replace(/^N\s*[°º.:\-]*\s*[:.]?\s*/,'').replace(/^[°º:.\-\s]+/,'');
-      for(const t of (rest.match(/[A-Z0-9]{4,10}/g) || [])){ const c = normalizeToken(t); if(c) return c; }
+      for(const t of (rest.match(/[A-Z0-9]{4,10}/g)||[])){ const c = normalizeToken(t); if(c) return c; }
     }
   }
-  for(const t of (up.match(/[A-Z0-9]{4,10}/g) || [])){
+  for(const t of (up.match(/[A-Z0-9]{4,10}/g)||[])){
     if(/^(LOTE|PARTE|PART|ARTE)/.test(t)) continue;
     const c = normalizeToken(t);
     if(c && !(c[0]==='N' && c.length>7)) return c;
@@ -322,364 +282,273 @@ function extractCode(text){
   return null;
 }
 
-async function recognize(canvas, psm){
-  await worker.setParameters({ tessedit_pageseg_mode: String(psm) });
-  const { data } = await worker.recognize(canvas);
-  return data.text || '';
-}
-
 /* ===================== Cámara ===================== */
 async function startCamera(){
   if(!navigator.mediaDevices?.getUserMedia){ toast('Este navegador no da acceso a la cámara. Usá “Subir foto”.'); return; }
   try{
-    // Pedimos 16:9 horizontal; si el celular está vertical, el visor recorta la franja central igual
-    stream = await navigator.mediaDevices.getUserMedia({
-      video:{ facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080}, aspectRatio:{ideal:16/9} },
-      audio:false
-    });
-    const v = $('video'); v.srcObject = stream; await v.play();
+    stream = await navigator.mediaDevices.getUserMedia({ audio:false, video:{
+      facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080}, aspectRatio:{ideal:16/9}
+    }});
+    const v = $('video'); v.srcObject = stream; v.hidden = false; await v.play();
     track = stream.getVideoTracks()[0];
     caps = track.getCapabilities?.() || {};
-    await setupCameraControls();
-    $('photo').hidden = true; v.hidden = false; $('placeholder').hidden = true;
+    await setupFocusAndZoom();
+    $('btnTorch').hidden = !caps.torch;
+    $('photo').hidden = true; $('placeholder').hidden = true;
     $('btnCam').textContent = 'Detener cámara'; $('btnCam').classList.remove('primary');
-    $('btnAuto').disabled = false; $('btnRead').disabled = false;
-    setAuto(true);
+    $('btnPause').disabled = false; setPaused(false);
+    setStatus(ready ? 'Buscando LOTE/PARTE N°…' : 'Cargando motor de lectura…');
   }catch(e){
     console.error(e);
-    toast(location.protocol === 'https:' || location.hostname === 'localhost'
+    toast(location.protocol==='https:'||location.hostname==='localhost'
       ? 'No se pudo abrir la cámara. Revisá los permisos del navegador.'
       : 'La cámara necesita HTTPS. Publicá la app o usá “Subir foto”.');
   }
 }
-
-async function setupCameraControls(){
-  // Enfoque continuo si existe
-  try{ if(caps.focusMode?.includes('continuous')) await track.applyConstraints({advanced:[{focusMode:'continuous'}]}); }catch(_){}
-  $('btnTorch').hidden = !caps.torch;
-
-  // Zoom: por hardware si el dispositivo lo permite, si no, digital
-  const z = $('zoom');
-  hwZoom = !!(caps.zoom && caps.zoom.max > caps.zoom.min);
-  if(hwZoom){
-    z.min = caps.zoom.min; z.max = Math.min(caps.zoom.max, 8); z.step = caps.zoom.step || 0.1;
-    const start = Math.min(Math.max(2, caps.zoom.min), z.max); // arrancar en 2× ayuda a enfocar de cerca
-    z.value = start; await applyZoom(start);
-  }else{
-    z.min = 1; z.max = CONFIG.maxDigitalZoom; z.step = 0.1; z.value = 1.5; applyZoom(1.5);
-  }
-
-  // Enfoque manual (solo algunos Android con Chrome)
-  const hasFocus = caps.focusDistance && caps.focusMode?.includes('manual');
-  $('focusRow').hidden = !hasFocus;
-  if(hasFocus){ const f=$('focus'); f.min=0; f.max=100; f.step=1; f.value=0; $('focusOut').textContent='Auto'; }
-
-  $('controls').hidden = false;
+async function setupFocusAndZoom(){
+  const adv = {};
+  if(caps.focusMode?.includes('continuous')) adv.focusMode = 'continuous';
+  if(caps.zoom){
+    const z = $('zoom');
+    z.min = caps.zoom.min; z.max = caps.zoom.max; z.step = caps.zoom.step || 0.1;
+    const start = Math.min(caps.zoom.max, Math.max(caps.zoom.min, 1.8)); // algo de zoom = enfoca mejor de cerca
+    z.value = start; adv.zoom = start; $('zoomVal').textContent = (+start).toFixed(1)+'×';
+    $('zoomBox').hidden = false;
+  }else $('zoomBox').hidden = true;
+  try{ if(Object.keys(adv).length) await track.applyConstraints({advanced:[adv]}); }catch(_){}
 }
-
-async function applyZoom(val){
-  val = +val;
-  $('zoomOut').textContent = val.toFixed(1)+'×';
-  if(hwZoom){
-    try{ await track.applyConstraints({advanced:[{zoom:val}]}); }catch(_){}
-    digitalZoom = 1;
-  }else{
-    digitalZoom = val;
-  }
-  $('video').style.transform = digitalZoom>1 ? `scale(${digitalZoom})` : '';
-}
-
-async function applyFocus(pct){
-  pct = +pct;
-  if(pct === 0){
-    $('focusOut').textContent = 'Auto';
-    try{ await track.applyConstraints({advanced:[{focusMode:'continuous'}]}); }catch(_){}
-    return;
-  }
-  // 1 = lo más cerca posible
-  const fd = caps.focusDistance;
-  const dist = fd.max - (fd.max - fd.min) * (pct/100);
-  $('focusOut').textContent = dist < 1 ? Math.round(dist*100)+' cm' : dist.toFixed(1)+' m';
-  try{ await track.applyConstraints({advanced:[{focusMode:'manual', focusDistance:dist}]}); }catch(_){}
-}
-
-async function tapToFocus(ev){
+async function tapToFocus(e){
   if(!track) return;
   const r = $('viewer').getBoundingClientRect();
-  const x = ev.clientX - r.left, y = ev.clientY - r.top;
-  const ring = $('focusRing'); ring.style.left = x+'px'; ring.style.top = y+'px';
-  ring.classList.remove('show'); void ring.offsetWidth; ring.classList.add('show');
-  if(+$('focus').value > 0) return; // modo manual: no tocar
+  const x = (e.clientX-r.left)/r.width, y = (e.clientY-r.top)/r.height;
+  const dot = $('focusdot'); dot.style.left = (x*100)+'%'; dot.style.top = (y*100)+'%';
+  dot.classList.add('show'); setTimeout(()=>dot.classList.remove('show'), 700);
   try{
     const adv = {};
-    if(caps.pointsOfInterest !== undefined) adv.pointsOfInterest = [{x:x/r.width, y:y/r.height}];
+    if(caps.pointsOfInterest) adv.pointsOfInterest = [{x,y}];
     if(caps.focusMode?.includes('single-shot')) adv.focusMode = 'single-shot';
-    if(Object.keys(adv).length){
-      await track.applyConstraints({advanced:[adv]});
-      setTimeout(()=>{ if(+$('focus').value===0 && caps.focusMode?.includes('continuous')) track?.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{}); }, 1500);
-    }
+    if(Object.keys(adv).length) await track.applyConstraints({advanced:[adv]});
+    if(caps.focusMode?.includes('continuous')) setTimeout(()=>track?.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{}), 1500);
   }catch(_){}
 }
-
 function stopCamera(){
-  setAuto(false);
-  stream?.getTracks().forEach(t=>t.stop()); stream = null; track = null; torchOn = false; caps = {};
-  $('video').srcObject = null; $('video').style.transform = '';
-  $('placeholder').hidden = false; $('controls').hidden = true;
+  clearTimeout(tickTimer);
+  stream?.getTracks().forEach(t=>t.stop()); stream=null; track=null; torchOn=false;
+  $('video').srcObject = null; $('viewer').classList.remove('live');
+  $('placeholder').hidden = false; $('zoomBox').hidden = true;
   $('btnCam').textContent = 'Iniciar cámara'; $('btnCam').classList.add('primary');
-  $('btnAuto').disabled = true; $('btnRead').disabled = true; $('btnTorch').hidden = true;
-  $('btnTorch').classList.remove('on');
+  $('btnPause').disabled = true; $('btnTorch').hidden = true; $('btnTorch').classList.remove('on');
 }
 async function toggleTorch(){
   if(!track) return;
-  try{ torchOn = !torchOn; await track.applyConstraints({advanced:[{torch:torchOn}]}); $('btnTorch').classList.toggle('on',torchOn); }
+  try{ torchOn=!torchOn; await track.applyConstraints({advanced:[{torch:torchOn}]}); $('btnTorch').classList.toggle('on',torchOn); }
   catch(_){ toast('La linterna no está disponible en este dispositivo.'); }
 }
-
-function setAuto(on){
-  autoOn = on;
-  $('btnAuto').classList.toggle('on', on);
-  $('btnAuto').textContent = on ? 'Automática: activa' : 'Lectura automática';
-  clearTimeout(autoTimer);
-  if(on) scheduleAuto();
-}
-function scheduleAuto(){
-  clearTimeout(autoTimer);
-  if(autoOn && stream && !$('confirmDlg').open) autoTimer = setTimeout(()=>scanFrame(true), CONFIG.autoIntervalMs);
+function setPaused(p){
+  paused = p;
+  $('btnPause').textContent = p ? 'Reanudar' : 'Pausar';
+  $('btnPause').classList.toggle('on', p);
+  $('viewer').classList.toggle('live', !p && !!stream);
+  if(!p) tick();
 }
 
-// Convierte el marco guía (en pantalla) a píxeles del video, teniendo en cuenta object-fit:cover y el zoom digital
-function guideToVideoRect(){
-  const v = $('video'), r = $('viewer').getBoundingClientRect();
+// Convierte el marco guía (en pantalla) a coordenadas del video con object-fit: cover
+function guideRectInVideo(v){
+  const vr = $('viewer').getBoundingClientRect(), gr = $('guide').getBoundingClientRect();
   const vw = v.videoWidth, vh = v.videoHeight;
-  const scale = Math.max(r.width/vw, r.height/vh) * digitalZoom;
-  const ox = (r.width - vw*scale)/2, oy = (r.height - vh*scale)/2;
-  const G = CONFIG.guide;
-  let sx = (G.x*r.width - ox)/scale, sy = (G.y*r.height - oy)/scale;
-  let sw = (G.w*r.width)/scale, sh = (G.h*r.height)/scale;
-  sx = Math.max(0, sx); sy = Math.max(0, sy);
-  sw = Math.min(vw - sx, sw); sh = Math.min(vh - sy, sh);
-  return {sx, sy, sw, sh};
+  const s = Math.max(vr.width/vw, vr.height/vh);
+  const ox = (vr.width - vw*s)/2, oy = (vr.height - vh*s)/2;
+  let sx = (gr.left-vr.left-ox)/s, sy = (gr.top-vr.top-oy)/s, sw = gr.width/s, sh = gr.height/s;
+  sx = Math.max(0,sx); sy = Math.max(0,sy); sw = Math.min(vw-sx,sw); sh = Math.min(vh-sy,sh);
+  return {sx,sy,sw,sh};
 }
 
-async function scanFrame(isAuto){
-  if(!worker){ setStatus('El motor de lectura todavía está cargando…'); return scheduleAuto(); }
-  if(busy || !stream || $('confirmDlg').open) return;
-  const v = $('video'); if(!v.videoWidth) return scheduleAuto();
-  busy = true; $('viewer').classList.add('busy');
-  try{
-    const {sx, sy, sw, sh} = guideToVideoRect();
-    const canvas = preprocess(v, sx, sy, sw, sh, 1400);
-    let text = await recognize(canvas, 7);
-    let code = extractCode(text);
-    if(!code){ text = await recognize(canvas, 6); code = extractCode(text); }
-    handleRead(code, text, isAuto);
-  }catch(e){ console.error(e); setStatus('Error al leer. Probá de nuevo.'); }
-  finally{ busy = false; $('viewer').classList.remove('busy'); scheduleAuto(); }
+/* ===================== Bucle de lectura (paralelo) ===================== */
+function tick(){
+  clearTimeout(tickTimer);
+  if(!stream || paused) return;
+  tickTimer = setTimeout(tick, CONFIG.tickMs);
+  if(!ready || !$('modal').hidden || inFlight >= WORKERS) return;
+  const v = $('video'); if(!v.videoWidth) return;
+  const {sx,sy,sw,sh} = guideRectInVideo(v);
+  const {canvas, ink} = preprocess(v, sx, sy, sw, sh, CONFIG.cropWidth);
+  if(ink < 0.01 || ink > 0.4){ noCode(); return; }  // cuadro vacío o movido: no gastar OCR
+  inFlight++;
+  scheduler.addJob('recognize', canvas)
+    .then(({data}) => handleRead(extractCode(data.text), data.text, data.confidence))
+    .catch(e => console.error(e))
+    .finally(() => { inFlight--; });
 }
-
-function handleRead(code, text, isAuto){
-  const raw = text.replace(/\s+/g,' ').trim();
-  if(!code){
-    candidateHits = 0; lastCandidate = null;
-    setStatus(isAuto ? 'Buscando LOTE/PARTE N°…' : 'No encontré el número. Acercá o alineá la tarjeta.');
-    return;
-  }
-  if(isAuto){
-    if(code === lastAccepted){ setStatus(`${code} ya fue procesado. Pasá a la siguiente tarjeta.`); return; }
-    if(code === lastCandidate) candidateHits++; else { lastCandidate = code; candidateHits = 1; }
-    if(candidateHits < CONFIG.confirmReads){ setStatus(`Confirmando ${code}…`); return; }
-  }
+function noCode(){
   candidateHits = 0; lastCandidate = null;
-  askConfirm(code, raw);
+  if(++emptyFrames >= 3) lastAccepted = null;   // la tarjeta anterior ya salió del cuadro
+  setStatus('Buscando LOTE/PARTE N°…');
+}
+function handleRead(code, text, conf){
+  if(!$('modal').hidden || paused || !stream) return;
+  if(!code){ noCode(); return; }
+  emptyFrames = 0;
+  if(code === lastAccepted){ setStatus(`${code} ya está cargado. Pasá a la siguiente tarjeta.`); return; }
+  if(code === lastCandidate) candidateHits++; else { lastCandidate = code; candidateHits = 1; }
+  if(conf < CONFIG.instantConfidence && candidateHits < CONFIG.confirmReads){ setStatus(`Confirmando ${code}…`); return; }
+  candidateHits = 0; lastCandidate = null;
+  askConfirm(code, text);
 }
 
-/* ===================== Foto subida ===================== */
+/* ===================== Foto subida (franjas en paralelo) ===================== */
 async function readPhoto(file){
   if(!file) return;
-  if(!worker){ toast('El motor de lectura todavía está cargando.'); return; }
+  if(!ready){ toast('El motor de lectura todavía está cargando.'); return; }
   if(stream) stopCamera();
-  const url = URL.createObjectURL(file);
-  const img = $('photo'); img.src = url; img.hidden = false; $('video').hidden = true;
-  $('placeholder').hidden = true;
+  const url = URL.createObjectURL(file), img = $('photo');
+  img.src = url; img.hidden = false; $('video').hidden = true; $('placeholder').hidden = true;
   await img.decode().catch(()=>{});
-  busy = true; $('viewer').classList.add('busy'); setStatus('Leyendo foto…');
+  setStatus('Leyendo foto…');
   try{
-    const W = img.naturalWidth, H = img.naturalHeight;
-    let canvas = preprocess(img, 0, 0, W, H, 1600);
-    let text = await recognize(canvas, 11);
-    let code = extractCode(text);
-    for(let i=0;i<8 && !code;i++){
-      const sy = H*(i/10), sh = Math.min(H*0.25, H - H*(i/10));
-      canvas = preprocess(img, 0, sy, W, sh, 1400);
-      text = await recognize(canvas, 7); code = extractCode(text);
+    const W = img.naturalWidth, H = img.naturalHeight, jobs = [];
+    for(let i=0;i<12;i++){
+      const sy = H*i*0.07, sh = Math.min(H*0.18, H-sy); if(sh < H*0.05) break;
+      jobs.push(scheduler.addJob('recognize', preprocess(img, 0, sy, W, sh, 1200).canvas));
     }
-    if(code) askConfirm(code, text.replace(/\s+/g,' ').trim());
+    const results = await Promise.all(jobs);
+    let found = null;
+    for(const r of results){ const c = extractCode(r.data.text); if(c){ found = {c, t:r.data.text}; break; } }
+    if(found) askConfirm(found.c, found.t);
     else setStatus('No encontré el número en la foto. Probá con una más cerca y derecha.');
   }catch(e){ console.error(e); setStatus('Error al leer la foto.'); }
-  finally{ busy=false; $('viewer').classList.remove('busy'); URL.revokeObjectURL(url); $('file').value=''; }
+  finally{ URL.revokeObjectURL(url); $('file').value=''; }
 }
 
 /* ===================== Confirmación ===================== */
 function askConfirm(code, raw){
   $('code').value = code;
-  $('raw').textContent = raw ? `Texto detectado: ${raw}` : '';
+  const t = (raw||'').replace(/\s+/g,' ').trim();
+  $('raw').textContent = t ? `Texto detectado: ${t}` : '';
   updateDup();
-  $('guide').classList.add('hit');
-  setStatus(`Leído: ${code}. Esperando confirmación…`);
+  $('modal').hidden = false; $('guide').classList.add('hit');
+  setStatus(`Leído: ${code}`);
   feedback();
-  const dlg = $('confirmDlg');
-  if(!dlg.open) dlg.showModal();
   setTimeout(()=>$('btnAccept').focus(), 50);
 }
-function closeConfirm(){
-  const dlg = $('confirmDlg'); if(dlg.open) dlg.close();
-  $('guide').classList.remove('hit');
-}
+function closeConfirm(){ $('modal').hidden = true; $('guide').classList.remove('hit'); tick(); }
 function updateDup(){
-  const c = cleanCode($('code').value);
-  const pos = displayPosition(c);
-  $('dup').hidden = !pos;
-  $('dup').textContent = pos ? `Ya está en el listado (#${pos}).` : '';
-  $('btnAccept').textContent = pos ? 'Sí, agregar igual' : 'Sí, agregar';
+  const c = cleanCode($('code').value), idx = items.findIndex(it=>it.code===c);
+  $('dup').hidden = idx < 0;
+  $('dup').textContent = idx>=0 ? `Ya está en el listado (N° ${idx+1}).` : '';
+  $('btnAccept').textContent = idx>=0 ? 'Agregar igual' : 'Sí, agregar';
 }
 function cleanCode(s){ return (s||'').toUpperCase().replace(/[^A-Z0-9]/g,''); }
-function displayPosition(code){ const i = items.findIndex(it=>it.code===code); return i<0 ? 0 : i+1; }
 
 /* ===================== Listado ===================== */
 function loadItems(){ try{ return JSON.parse(localStorage.getItem(CONFIG.storageKey)) || []; }catch(_){ return []; } }
 function saveItems(){ try{ localStorage.setItem(CONFIG.storageKey, JSON.stringify(items)); }catch(_){} }
-
-function validCodeOrAsk(code){
+function validOrConfirm(code){
   if(!code){ toast('Escribí un código.'); return false; }
-  if(!CONFIG.codeRegex.test(code) && !confirm(`“${code}” no tiene el formato habitual (letra opcional + números). ¿Usarlo igual?`)) return false;
-  return true;
+  return CONFIG.codeRegex.test(code) || confirm(`“${code}” no tiene el formato habitual (letra opcional + números). ¿Guardarlo igual?`);
 }
 function addItem(code){
   code = cleanCode(code);
-  if(!validCodeOrAsk(code)) return false;
-  const ts = Date.now();
-  items.push({ code, ts });
-  saveItems(); flashTs = ts; render();
-  lastAccepted = code;
+  if(!validOrConfirm(code)) return false;
+  items.push({ code, ts: Date.now() });
+  saveItems(); editing = -1; render();
+  lastAccepted = code; emptyFrames = 0;
   toast(`Agregado: ${code}`);
-  document.querySelector('.table-wrap').scrollTop = 0;
   return true;
 }
-function removeItem(ts){
-  const i = items.findIndex(it=>it.ts===ts); if(i<0) return;
+function saveEdit(i){
+  const input = document.querySelector(`.edit-input[data-i="${i}"]`);
+  const code = cleanCode(input?.value);
+  if(!validOrConfirm(code)) return;
+  if(code !== items[i].code){ items[i].code = code; items[i].edited = true; saveItems(); toast(`Corregido: ${code}`); }
+  editing = -1; render();
+}
+function removeItem(i){
   if(!confirm(`¿Quitar ${items[i].code} del listado?`)) return;
-  items.splice(i,1); saveItems(); render();
+  items.splice(i,1); saveItems(); editing = -1; render();
 }
-function startEdit(ts){ editingTs = ts; render(); const inp = document.querySelector('.edit-input'); inp?.focus(); inp?.select(); }
-function cancelEdit(){ editingTs = null; render(); }
-function saveEdit(ts){
-  const inp = document.querySelector('.edit-input'); if(!inp) return;
-  const code = cleanCode(inp.value);
-  if(!validCodeOrAsk(code)) return;
-  const it = items.find(x=>x.ts===ts); if(!it) return;
-  if(it.code !== code){
-    if(!it.original) it.original = it.code;
-    it.code = code; it.editedAt = Date.now();
-    if(it.original === code){ delete it.original; delete it.editedAt; }
-    saveItems(); toast(`Corregido: ${code}`);
-  }
-  editingTs = null; render();
-}
-
-function fmtDate(ts){ return new Date(ts).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}); }
-function fmtTime(ts){ return new Date(ts).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
-function escHtml(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-
+const fmtDate = ts => new Date(ts).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+const fmtTime = ts => new Date(ts).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 function render(){
   $('count').textContent = items.length;
   const tb = $('tbody');
   if(!items.length){ tb.innerHTML = '<tr><td colspan="5" class="empty">Todavía no hay lotes. Leé una tarjeta para empezar.</td></tr>'; return; }
-  const rows = [];
-  for(let i=items.length-1;i>=0;i--){   // el último agregado primero
-    const it = items[i], latest = i===items.length-1;
-    const cls = [latest?'latest':'', it.ts===flashTs?'flash':''].join(' ').trim();
-    if(it.ts === editingTs){
-      rows.push(`<tr class="${cls}"><td class="n">${i+1}</td>
-        <td colspan="3"><input class="edit-input" value="${escHtml(it.code)}" data-ts="${it.ts}" autocomplete="off" spellcheck="false"></td>
-        <td class="actions"><button class="primary" data-act="save" data-ts="${it.ts}">Guardar</button>
-        <button class="ghost" data-act="cancel">Cancelar</button></td></tr>`);
-    }else{
-      const edited = it.original ? `<small title="Original: ${escHtml(it.original)}">editado</small>` : '';
-      rows.push(`<tr class="${cls}"><td class="n">${i+1}</td><td class="code">${escHtml(it.code)}${edited}</td>
+  let html = '';
+  for(let i=items.length-1;i>=0;i--){   // el último leído arriba
+    const it = items[i], latest = i===items.length-1 ? ' class="latest"' : '';
+    if(i === editing){
+      html += `<tr${latest}><td class="n">${i+1}</td>
+        <td><input class="edit-input" data-i="${i}" value="${it.code}" autocomplete="off" spellcheck="false"></td>
         <td>${fmtDate(it.ts)}</td><td>${fmtTime(it.ts)}</td>
-        <td class="actions"><button class="ghost" data-act="edit" data-ts="${it.ts}" aria-label="Editar ${escHtml(it.code)}">Editar</button>
-        <button class="ghost danger" data-act="del" data-ts="${it.ts}" aria-label="Quitar ${escHtml(it.code)}">Quitar</button></td></tr>`);
+        <td class="acts"><button class="primary sm" data-act="save" data-i="${i}">Guardar</button>
+        <button class="ghost sm" data-act="cancel" data-i="${i}">Cancelar</button></td></tr>`;
+    }else{
+      html += `<tr${latest}><td class="n">${i+1}</td>
+        <td class="code">${it.code}${it.edited?'<span class="tag">editado</span>':''}</td>
+        <td>${fmtDate(it.ts)}</td><td>${fmtTime(it.ts)}</td>
+        <td class="acts"><button class="ghost sm" data-act="edit" data-i="${i}">Editar</button>
+        <button class="ghost danger sm" data-act="del" data-i="${i}">Quitar</button></td></tr>`;
     }
   }
-  tb.innerHTML = rows.join('');
-  flashTs = null;
+  tb.innerHTML = html;
+  if(editing >= 0){ const inp = tb.querySelector('.edit-input'); inp?.focus(); inp?.select(); }
 }
 
 /* ===================== CSV ===================== */
 function exportCSV(){
   if(!items.length){ toast('El listado está vacío.'); return; }
   const sep = CONFIG.csvSeparator;
-  const esc = v => { v = String(v ?? ''); return /[";\n,]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v; };
-  const asText = c => /^0/.test(c) ? `="${c}"` : esc(c);   // evita que Excel borre ceros a la izquierda
-  const rows = [['N°','Lote/Parte','Fecha','Hora','Editado','Valor original'].join(sep)];
-  items.forEach((it,i)=> rows.push([
-    i+1, asText(it.code), esc(fmtDate(it.ts)), esc(fmtTime(it.ts)),
-    it.original ? 'Sí' : 'No', it.original ? asText(it.original) : ''
-  ].join(sep)));
-  const blob = new Blob(['\uFEFF' + rows.join('\r\n')], {type:'text/csv;charset=utf-8'});
-  const d = new Date(), pad = n=>String(n).padStart(2,'0');
-  const name = `lotes_${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.csv`;
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  const rows = [['N°','Lote/Parte','Fecha','Hora','Editado'].join(sep)];
+  items.forEach((it,i)=>{
+    const code = /^0/.test(it.code) ? `="${it.code}"` : it.code;  // Excel no recorta ceros iniciales
+    rows.push([i+1, code, fmtDate(it.ts), fmtTime(it.ts), it.edited?'Sí':''].join(sep));
+  });
+  const blob = new Blob(['\uFEFF'+rows.join('\r\n')], {type:'text/csv;charset=utf-8'});
+  const d = new Date(), p = n=>String(n).padStart(2,'0');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `lotes_${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}.csv`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
-  toast(`Exportado ${items.length} lotes`);
+  toast(`Exportados ${items.length} lotes`);
 }
 
-/* ===================== UI util ===================== */
+/* ===================== Util ===================== */
 function setStatus(t){ $('status').textContent = t; }
 let toastT; function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),2200); }
 let actx; function feedback(){
   try{ navigator.vibrate?.(80); }catch(_){}
-  try{
-    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+  try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)();
     const o=actx.createOscillator(), g=actx.createGain(); o.frequency.value=1046; g.gain.value=0.08;
-    o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime+0.12);
-  }catch(_){}
+    o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime+0.12); }catch(_){}
 }
 
 /* ===================== Eventos ===================== */
 $('btnCam').onclick = () => stream ? stopCamera() : startCamera();
-$('btnAuto').onclick = () => setAuto(!autoOn);
-$('btnRead').onclick = () => scanFrame(false);
+$('btnPause').onclick = () => setPaused(!paused);
 $('btnTorch').onclick = toggleTorch;
-$('viewer').addEventListener('click', tapToFocus);
-$('zoom').oninput = e => applyZoom(e.target.value);
-$('focus').oninput = e => applyFocus(e.target.value);
+$('viewer').onclick = tapToFocus;
+$('zoom').oninput = e => { const z=+e.target.value; $('zoomVal').textContent=z.toFixed(1)+'×'; track?.applyConstraints({advanced:[{zoom:z}]}).catch(()=>{}); };
 $('file').onchange = e => readPhoto(e.target.files[0]);
-
 $('code').oninput = updateDup;
-$('code').onkeydown = e => { if(e.key==='Enter'){ e.preventDefault(); $('btnAccept').click(); } };
-$('btnAccept').onclick = () => { if(addItem($('code').value)){ closeConfirm(); scheduleAuto(); } };
-$('btnReject').onclick = () => { closeConfirm(); setStatus('Descartado. Volvé a apuntar a la tarjeta.'); scheduleAuto(); };
-$('confirmDlg').addEventListener('cancel', () => { $('guide').classList.remove('hit'); setTimeout(scheduleAuto, 0); });
-
+$('code').onkeydown = e => { if(e.key==='Enter') $('btnAccept').click(); };
+$('btnAccept').onclick = () => { if(addItem($('code').value)) closeConfirm(); };
+$('btnRetry').onclick = () => { lastCandidate=null; candidateHits=0; closeConfirm(); };
 $('btnManual').onclick = () => { if(addItem($('manualCode').value)) $('manualCode').value=''; };
 $('btnCsv').onclick = exportCSV;
-$('btnClear').onclick = () => { if(items.length && confirm('¿Vaciar todo el listado? Exportalo antes si lo necesitás.')){ items=[]; saveItems(); render(); lastAccepted=null; } };
+$('btnClear').onclick = () => { if(items.length && confirm('¿Vaciar todo el listado? Exportalo antes si lo necesitás.')){ items=[]; saveItems(); editing=-1; render(); lastAccepted=null; } };
 $('tbody').onclick = e => {
-  const b = e.target.closest('button'); if(!b) return;
-  const ts = +b.dataset.ts;
-  if(b.dataset.act==='edit') startEdit(ts);
-  else if(b.dataset.act==='del') removeItem(ts);
-  else if(b.dataset.act==='save') saveEdit(ts);
-  else if(b.dataset.act==='cancel') cancelEdit();
+  const b = e.target.closest('button[data-act]'); if(!b) return;
+  const i = +b.dataset.i, act = b.dataset.act;
+  if(act==='edit'){ editing=i; render(); }
+  else if(act==='cancel'){ editing=-1; render(); }
+  else if(act==='save') saveEdit(i);
+  else if(act==='del') removeItem(i);
 };
-$('tbody').addEventListener('keydown', e => {
+$('tbody').onkeydown = e => {
   if(!e.target.classList.contains('edit-input')) return;
-  if(e.key==='Enter'){ e.preventDefault(); saveEdit(+e.target.dataset.ts); }
-  if(e.key==='Escape'){ cancelEdit(); }
-});
+  if(e.key==='Enter') saveEdit(+e.target.dataset.i);
+  if(e.key==='Escape'){ editing=-1; render(); }
+};
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden && stream) stopCamera(); });
 
 render();
