@@ -56,6 +56,7 @@ h1{font-size:1.35rem;margin:0;letter-spacing:-.01em}
 .zoom{display:flex;align-items:center;gap:10px;margin-top:10px}
 .zoom[hidden]{display:none}
 .zoom input{flex:1;accent-color:var(--signal)}
+.zoom .sm{padding:6px 12px;font-size:.85rem}
 .zoom output{font-family:var(--mono);min-width:3.5em;text-align:right}
 
 .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
@@ -122,7 +123,7 @@ td .sm{padding:6px 10px;font-size:.85rem}
     <div class="scanline"></div>
     <div class="focusdot" id="focusdot"></div>
   </div>
-  <p class="hint">Alineá “LOTE/PARTE N°” dentro del marco. Si se ve borroso, alejá la tarjeta y subí el zoom. Tocá la imagen para enfocar.</p>
+  <p class="hint">Alineá “LOTE/PARTE N°” dentro del marco. Si se ve borroso: alejá la tarjeta y subí el zoom, tocá la imagen para enfocar o usá “Foto nítida”.</p>
   <div class="status" id="status">Cargando motor de lectura…</div>
 
   <div class="zoom" id="zoomBox" hidden>
@@ -131,8 +132,15 @@ td .sm{padding:6px 10px;font-size:.85rem}
     <output id="zoomVal">1.0×</output>
   </div>
 
+  <div class="zoom" id="focusBox" hidden>
+    <span>Enfoque</span>
+    <input type="range" id="focus" min="0" max="1" step="0.01" value="0">
+    <button class="sm" id="btnAF">Auto</button>
+  </div>
+
   <div class="row">
     <button class="primary" id="btnCam">Iniciar cámara</button>
+    <button id="btnSnap" disabled>Foto nítida</button>
     <button id="btnPause" disabled>Pausar</button>
     <button id="btnTorch" hidden>Linterna</button>
     <label class="btn">Subir foto<input type="file" id="file" accept="image/*" capture="environment"></label>
@@ -184,6 +192,9 @@ const CONFIG = {
   cropWidth: 900,                 // ancho del recorte que va al OCR (menos = más rápido)
   instantConfidence: 72,          // con esta confianza o más, pide confirmar sin segunda lectura
   confirmReads: 2,                // si no, lecturas iguales para confirmar
+  sharpGate: 0.75,                // solo se lee un cuadro si es ≥75% de nítido que el mejor reciente
+  minSharp: 2,                    // nitidez mínima absoluta
+  sharpen: 0.6,                   // realce de bordes para imágenes algo borrosas
   storageKey: 'lotes_v1',
   csvSeparator: ';'
 };
@@ -197,6 +208,7 @@ let paused = false, tickTimer = null, inFlight = 0;
 let lastCandidate = null, candidateHits = 0;
 let lastAccepted = null, emptyFrames = 0;
 let torchOn = false, editing = -1;
+let sharpHist = [], blurCount = 0, lastRefocus = 0, manualFocus = false, snapping = false;
 let items = loadItems();
 
 /* ===================== OCR ===================== */
@@ -219,42 +231,70 @@ async function initOCR(){
   }
 }
 
-// Gris + suavizado (une puntos de matriz) + umbral adaptativo. Una sola imagen integral: O(n).
+// Gris → mide nitidez y luz → suaviza (une puntos) + realza bordes → umbral adaptativo (tolera sombras)
 function preprocess(src, sx, sy, sw, sh, targetW){
   const scale = Math.min(2.5, targetW / sw);
-  const w = Math.max(1, Math.round(sw*scale)), h = Math.max(1, Math.round(sh*scale));
+  const w = Math.max(3, Math.round(sw*scale)), h = Math.max(3, Math.round(sh*scale));
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   const ctx = c.getContext('2d', {willReadFrequently:true});
+  ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(src, sx, sy, sw, sh, 0, 0, w, h);
-  const img = ctx.getImageData(0,0,w,h), d = img.data;
-  const W1 = w+1, integ = new Float64Array(W1*(h+1));
+  const img = ctx.getImageData(0,0,w,h), d = img.data, N = w*h;
+  const g = new Float32Array(N), W1 = w+1, integ = new Float64Array(W1*(h+1));
+  let lum = 0;
   for(let y=0;y<h;y++){
     let row=0;
     for(let x=0;x<w;x++){
-      const k=(y*w+x)*4;
-      row += d[k]*0.299 + d[k+1]*0.587 + d[k+2]*0.114;
+      const j=y*w+x, k=j*4, v = d[k]*0.299 + d[k+1]*0.587 + d[k+2]*0.114;
+      g[j]=v; lum+=v; row+=v;
       integ[(y+1)*W1+x+1] = integ[y*W1+x+1] + row;
     }
   }
-  const box = (x1,y1,x2,y2) => integ[(y2+1)*W1+x2+1]-integ[y1*W1+x2+1]-integ[(y2+1)*W1+x1]+integ[y1*W1+x1];
-  const S = Math.max(15, Math.floor(w/12)), half = S>>1, T = 0.15;
+  // Nitidez: laplaciano medio (muestreado)
+  let lap=0, cnt=0;
+  for(let y=1;y<h-1;y+=2) for(let x=1;x<w-1;x+=2){ const j=y*w+x; lap+=Math.abs(4*g[j]-g[j-1]-g[j+1]-g[j-w]-g[j+w]); cnt++; }
+  const sharp = cnt ? lap/cnt : 0;
+
+  const box = (x,y,r) => {
+    const x1=Math.max(0,x-r), x2=Math.min(w-1,x+r), y1=Math.max(0,y-r), y2=Math.min(h-1,y+r);
+    return (integ[(y2+1)*W1+x2+1]-integ[y1*W1+x2+1]-integ[(y2+1)*W1+x1]+integ[y1*W1+x1]) / ((x2-x1+1)*(y2-y1+1));
+  };
+  const half = Math.max(7, Math.floor(w/24)), T = 0.15, K = CONFIG.sharpen;
   let dark = 0;
   for(let y=0;y<h;y++){
-    const by1=Math.max(0,y-1), by2=Math.min(h-1,y+1), y1=Math.max(0,y-half), y2=Math.min(h-1,y+half);
     for(let x=0;x<w;x++){
-      const bx1=Math.max(0,x-1), bx2=Math.min(w-1,x+1);
-      const blur = box(bx1,by1,bx2,by2)/((bx2-bx1+1)*(by2-by1+1));
-      const x1=Math.max(0,x-half), x2=Math.min(w-1,x+half);
-      const mean = box(x1,y1,x2,y2)/((x2-x1+1)*(y2-y1+1));
-      const v = blur <= mean*(1-T) ? 0 : 255;
+      const b3 = box(x,y,1), b7 = box(x,y,3);
+      const val = b3 + K*(b3 - b7);           // máscara de enfoque (unsharp mask)
+      const v = val <= box(x,y,half)*(1-T) ? 0 : 255;
       if(!v) dark++;
       const k=(y*w+x)*4; d[k]=d[k+1]=d[k+2]=v; d[k+3]=255;
     }
   }
-  const ratio = dark/(w*h);
+  const ratio = dark/N;
   if(ratio > 0.5){ for(let k=0;k<d.length;k+=4){ d[k]=d[k+1]=d[k+2]=255-d[k]; } }
   ctx.putImageData(img,0,0);
-  return { canvas:c, ink: ratio > 0.5 ? 1-ratio : ratio };
+  return { canvas:c, ink: ratio > 0.5 ? 1-ratio : ratio, sharp, lum: lum/N };
+}
+
+// Elige solo los cuadros más nítidos y reenfoca si la imagen sigue borrosa
+function sharpEnough(sharp){
+  sharpHist.push(sharp); if(sharpHist.length > 16) sharpHist.shift();
+  const gate = Math.max(CONFIG.minSharp, Math.max(...sharpHist) * CONFIG.sharpGate);
+  if(sharp >= gate){ blurCount = 0; return true; }
+  if(++blurCount >= 18){ setStatus('Imagen borrosa: alejá la tarjeta unos cm o subí el zoom.'); maybeRefocus(); }
+  return false;
+}
+async function maybeRefocus(){
+  if(!track || manualFocus || Date.now()-lastRefocus < 3000) return;
+  lastRefocus = Date.now(); blurCount = 0; sharpHist = [];
+  try{
+    if(caps.focusMode?.includes('single-shot')) await track.applyConstraints({advanced:[{focusMode:'single-shot'}]});
+    setTimeout(()=>{ if(track && !manualFocus && caps.focusMode?.includes('continuous'))
+      track.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{}); }, 900);
+  }catch(_){}
+}
+function lightHint(lum){
+  if(lum < 70 && !torchOn && caps.torch) setStatus('Poca luz: activá la linterna.');
 }
 
 function normalizeToken(tok){
@@ -293,11 +333,17 @@ async function startCamera(){
     const v = $('video'); v.srcObject = stream; v.hidden = false; await v.play();
     track = stream.getVideoTracks()[0];
     caps = track.getCapabilities?.() || {};
+    try{ // algunos celulares arrancan en 640x480: pedir más resolución
+      const st = track.getSettings?.() || {};
+      if((st.width||0) < 1280 && caps.width?.max >= 1280)
+        await track.applyConstraints({width:{ideal:Math.min(1920,caps.width.max)}, height:{ideal:Math.min(1080,caps.height?.max||1080)}});
+    }catch(_){}
+    manualFocus = false; sharpHist = []; blurCount = 0;
     await setupFocusAndZoom();
     $('btnTorch').hidden = !caps.torch;
     $('photo').hidden = true; $('placeholder').hidden = true;
     $('btnCam').textContent = 'Detener cámara'; $('btnCam').classList.remove('primary');
-    $('btnPause').disabled = false; setPaused(false);
+    $('btnPause').disabled = false; $('btnSnap').disabled = false; setPaused(false);
     setStatus(ready ? 'Buscando LOTE/PARTE N°…' : 'Cargando motor de lectura…');
   }catch(e){
     console.error(e);
@@ -316,6 +362,12 @@ async function setupFocusAndZoom(){
     z.value = start; adv.zoom = start; $('zoomVal').textContent = (+start).toFixed(1)+'×';
     $('zoomBox').hidden = false;
   }else $('zoomBox').hidden = true;
+  // Enfoque manual (si la cámara lo permite): útil cuando el autofoco no engancha de cerca
+  if(caps.focusDistance && caps.focusMode?.includes('manual')){
+    const f = $('focus');
+    f.min = caps.focusDistance.min; f.max = caps.focusDistance.max; f.step = caps.focusDistance.step || 0.01;
+    f.value = caps.focusDistance.min; $('focusBox').hidden = false; $('btnAF').classList.add('on');
+  }else $('focusBox').hidden = true;
   try{ if(Object.keys(adv).length) await track.applyConstraints({advanced:[adv]}); }catch(_){}
 }
 async function tapToFocus(e){
@@ -336,7 +388,7 @@ function stopCamera(){
   clearTimeout(tickTimer);
   stream?.getTracks().forEach(t=>t.stop()); stream=null; track=null; torchOn=false;
   $('video').srcObject = null; $('viewer').classList.remove('live');
-  $('placeholder').hidden = false; $('zoomBox').hidden = true;
+  $('placeholder').hidden = false; $('zoomBox').hidden = true; $('focusBox').hidden = true; $('btnSnap').disabled = true;
   $('btnCam').textContent = 'Iniciar cámara'; $('btnCam').classList.add('primary');
   $('btnPause').disabled = true; $('btnTorch').hidden = true; $('btnTorch').classList.remove('on');
 }
@@ -372,8 +424,11 @@ function tick(){
   if(!ready || !$('modal').hidden || inFlight >= WORKERS) return;
   const v = $('video'); if(!v.videoWidth) return;
   const {sx,sy,sw,sh} = guideRectInVideo(v);
-  const {canvas, ink} = preprocess(v, sx, sy, sw, sh, CONFIG.cropWidth);
-  if(ink < 0.01 || ink > 0.4){ noCode(); return; }  // cuadro vacío o movido: no gastar OCR
+  const {canvas, ink, sharp, lum} = preprocess(v, sx, sy, sw, sh, CONFIG.cropWidth);
+  const okSharp = sharpEnough(sharp);
+  lightHint(lum);
+  if(ink < 0.01 || ink > 0.4){ noCode(); return; }  // cuadro vacío: no gastar OCR
+  if(!okSharp) return;                               // cuadro movido/borroso: esperar uno mejor
   inFlight++;
   scheduler.addJob('recognize', canvas)
     .then(({data}) => handleRead(extractCode(data.text), data.text, data.confidence))
@@ -383,10 +438,10 @@ function tick(){
 function noCode(){
   candidateHits = 0; lastCandidate = null;
   if(++emptyFrames >= 3) lastAccepted = null;   // la tarjeta anterior ya salió del cuadro
-  setStatus('Buscando LOTE/PARTE N°…');
+  if(blurCount < 18) setStatus('Buscando LOTE/PARTE N°…');
 }
 function handleRead(code, text, conf){
-  if(!$('modal').hidden || paused || !stream) return;
+  if(!$('modal').hidden || paused || !stream || snapping) return;
   if(!code){ noCode(); return; }
   emptyFrames = 0;
   if(code === lastAccepted){ setStatus(`${code} ya está cargado. Pasá a la siguiente tarjeta.`); return; }
@@ -394,6 +449,43 @@ function handleRead(code, text, conf){
   if(conf < CONFIG.instantConfidence && candidateHits < CONFIG.confirmReads){ setStatus(`Confirmando ${code}…`); return; }
   candidateHits = 0; lastCandidate = null;
   askConfirm(code, text);
+}
+
+/* ===================== Foto nítida ===================== */
+async function snapSharp(){
+  if(!stream || !ready || snapping) return;
+  snapping = true; $('btnSnap').disabled = true; $('viewer').classList.remove('live');
+  setStatus('Capturando foto nítida… quedate quieto');
+  try{
+    let found = null;
+    // 1) Foto a resolución completa del sensor (Chrome Android)
+    if('ImageCapture' in window){
+      try{
+        const bmp = await createImageBitmap(await new ImageCapture(track).takePhoto());
+        const W = bmp.width, H = bmp.height, offs = [0,-0.06,0.06,-0.12,0.12,-0.18,0.18];
+        const jobs = offs.map(o => {
+          const sh = H*0.16, sy = Math.max(0, Math.min(H-sh, H*0.5 + H*o - sh/2));
+          return scheduler.addJob('recognize', preprocess(bmp, W*0.04, sy, W*0.92, sh, 1400).canvas);
+        });
+        for(const r of await Promise.all(jobs)){ const c = extractCode(r.data.text); if(c){ found={c,t:r.data.text}; break; } }
+      }catch(e){ console.warn('ImageCapture no disponible', e); }
+    }
+    // 2) Ráfaga de cuadros: se queda con el más nítido
+    if(!found){
+      const v = $('video'); let best = null;
+      for(let i=0;i<10;i++){
+        await new Promise(r=>setTimeout(r,90));
+        const {sx,sy,sw,sh} = guideRectInVideo(v);
+        const p = preprocess(v, sx, sy, sw, sh, 1300);
+        if(!best || p.sharp > best.sharp) best = p;
+      }
+      const r = await scheduler.addJob('recognize', best.canvas);
+      const c = extractCode(r.data.text); if(c) found = {c, t:r.data.text};
+    }
+    if(found) askConfirm(found.c, found.t);
+    else setStatus('No pude leerlo. Alejá un poco la tarjeta, evitá reflejos y probá de nuevo.');
+  }catch(e){ console.error(e); setStatus('Error al capturar.'); }
+  finally{ snapping = false; if(stream){ $('btnSnap').disabled = false; setPaused(paused); } }
 }
 
 /* ===================== Foto subida (franjas en paralelo) ===================== */
@@ -528,6 +620,15 @@ $('btnTorch').onclick = toggleTorch;
 $('viewer').onclick = tapToFocus;
 $('zoom').oninput = e => { const z=+e.target.value; $('zoomVal').textContent=z.toFixed(1)+'×'; track?.applyConstraints({advanced:[{zoom:z}]}).catch(()=>{}); };
 $('file').onchange = e => readPhoto(e.target.files[0]);
+$('btnSnap').onclick = snapSharp;
+$('focus').oninput = e => {
+  manualFocus = true; $('btnAF').classList.remove('on');
+  track?.applyConstraints({advanced:[{focusMode:'manual', focusDistance:+e.target.value}]}).catch(()=>{});
+};
+$('btnAF').onclick = () => {
+  manualFocus = false; $('btnAF').classList.add('on'); sharpHist = [];
+  if(caps.focusMode?.includes('continuous')) track?.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{});
+};
 $('code').oninput = updateDup;
 $('code').onkeydown = e => { if(e.key==='Enter') $('btnAccept').click(); };
 $('btnAccept').onclick = () => { if(addItem($('code').value)) closeConfirm(); };
